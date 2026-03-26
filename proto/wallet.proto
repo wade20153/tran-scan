@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package wallet;
+
+option go_package = "pkg/walletgrpc/walletpb;walletpb";
+
+service WalletService {
+
+  // 获取唯一ID
+  rpc GetUniqueId (Empty) returns (UniqueIdResp);
+
+  // 创建用户钱包
+  rpc CreateUserWallet (CreateWalletReq) returns (CreateWalletResp);
+
+  // 获取用户所有钱包
+  rpc ListWallet (MemberReq) returns (WalletListResp);
+
+  // 获取用户 ETH 地址
+  rpc GetETHWallet (MemberReq) returns (WalletResp);
+
+  // 获取用户 TRX 地址
+  rpc GetTRXWallet (MemberReq) returns (WalletResp);
+
+  // 转账（支持 ERC20 / TRC20）
+  rpc TransferCrypto (TransferReq) returns (TransferResp);
+
+  // 预估手续费
+  rpc EstimateGas (EstimateGasReq) returns (EstimateGasResp);
+
+  // 获取对账钱包
+  rpc GetReconcileWallet (Empty) returns (WalletResp);
+
+  // 测试ETH转账
+  rpc TestTransferETH (TransferReq) returns (TransferResp);
+
+  // 测试TRON转账
+  rpc TestTransferTRON (TransferReq) returns (TransferResp);
+  // 查询余额
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+
+}
+
+message Empty {}
+
+/* ---------- 通用结构 ---------- */
+
+message WalletInfo {
+  string chain = 1;       // ETH / TRX
+  string address = 2;
+  string private_key = 3; // 一般生产环境不建议返回
+  string created_at = 4;
+}
+
+/* ---------- 请求 ---------- */
+
+message MemberReq {
+  int64 member_id = 1;
+}
+
+message CreateWalletReq {
+  int64 member_id = 1;
+}
+
+message TransferReq {
+  string chain = 1;      // ETH / TRX
+  string token = 2;      // ERC20 / TRC20 / ETH / TRX
+  string from = 3;
+  string to = 4;
+  string amount = 5;     // 建议字符串，避免精度问题
+  string private_key = 6;
+}
+
+message EstimateGasReq {
+  string chain = 1;
+  string token = 2;
+  string from = 3;
+  string to = 4;
+  string amount = 5;
+}
+
+/* ---------- 响应 ---------- */
+
+message UniqueIdResp {
+  int64 unique_id = 1;
+}
+
+message CreateWalletResp {
+  bool success = 1;
+  WalletInfo wallet = 2;
+}
+
+message WalletResp {
+  WalletInfo wallet = 1;
+}
+
+message WalletListResp {
+  repeated WalletInfo wallets = 1;
+}
+
+message EstimateGasResp {
+  string gas_fee = 1;
+  string unit = 2; // ETH / TRX
+}
+
+message TransferResp {
+  bool success = 1;
+  string tx_hash = 2;
+  string error = 3;
+}
+message GetBalanceRequest {
+  string member_id = 1;   // 会员ID
+  string chain = 2;       // 链类型: ETH / TRX
+  string token = 3;       // 币种: ETH / TRX / USDT 等（或合约地址）
+}
+message GetBalanceResponse{
+  string member_id = 1;
+  string chain = 2;
+  string token = 3;
+
+  string balance = 4;      // 余额（字符串防止精度丢失）
+  int32 decimals = 5;      // 精度（比如 ETH 18）
+}
