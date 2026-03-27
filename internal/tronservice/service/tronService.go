@@ -262,3 +262,16 @@ func (s *WalletService) TransferTRC20(fromAddr string, toAddr string, amount int
 	}
 	return result, nil
 }
+func (s *WalletService) GetTransactionDetail(txId string) (map[string]interface{}, error) {
+	// ===== 1️⃣ 获取客户端 =====
+	c, err := trxgrpcs.GetClient()
+	if err != nil {
+		return nil, fmt.Errorf("获取客户的失败: %w", err)
+	}
+
+	result, err := c.GetTransactionDetail(txId)
+	if err != nil {
+		return nil, fmt.Errorf("转账TRX失败: %w", err)
+	}
+	return result, nil
+}

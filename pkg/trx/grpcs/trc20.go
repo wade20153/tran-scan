@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -173,4 +174,57 @@ func (c *Client) TransferTRC20Back(
 	txid := hex.EncodeToString(txidBytes[:])
 
 	return txid, nil
+}
+
+// GetTransactionDetail 综合查询交易内容与执行状态
+func (c *Client) GetTransactionDetail(txId string) (map[string]interface{}, error) {
+	grpcCli, err := c.GetOneClient()
+	if err != nil {
+		return nil, err
+	}
+	//
+	log.Printf("[TRON-SCAN] 开始查询交易详情, TXID: %s", txId)
+	tx, err := grpcCli.GetTransactionByID(txId)
+	if err != nil || tx == nil {
+		log.Printf("[TRON-SCAN] 链上未查到交易体或 RPC 报错, TXID: %s, Error: %v", txId, err)
+		return nil, fmt.Errorf("没有查询到交易记录：%v", err)
+	}
+	info, err := grpcCli.GetTransactionInfoByID(txId)
+	if err != nil {
+		log.Printf("[TRON-SCAN] 获取 TransactionInfo 失败 (可能尚未打包), TXID: %s, Error: %v", txId, err)
+	}
+	detail := make(map[string]interface{})
+	detail["txid"] = txId
+	if len(tx.GetRawData().GetContract()) > 0 {
+		contract := tx.GetRawData().GetContract()[0]
+		detail["type"] = contract.GetType().String()
+		detail["expiration"] = tx.GetRawData().GetExpiration()
+		log.Printf("[TRON-SCAN] 交易类型: %s, 过期时间: %d", contract.GetType().String(), detail["expiration"])
+	}
+	//
+	if info != nil {
+		detail["status"] = info.GetResult().String()
+		detail["block_height"] = info.BlockNumber
+		detail["fee_usage"] = info.GetFee()
+		log.Printf("[TRON-SCAN] 交易已入块: %d, 基础结果: %s, 消耗手续费: %d sun",
+			info.BlockNumber, detail["status"], info.GetFee())
+		if info.GetReceipt() != nil {
+			receiptResult := info.GetReceipt().GetResult().String()
+			detail["receipt_result"] = receiptResult
+			detail["energy_usage"] = info.GetReceipt().GetEnergyUsage()
+			detail["net_usage"] = info.GetReceipt().GetNetUsage()
+			// 关键点：如果是 TRC20 转账失败，这里通常能看到原因
+			if receiptResult != "DEFAULT" && receiptResult != "SUCCESS" {
+				log.Printf("[TRON-SCAN] ⚠️ 警告：合约执行异常! ReceiptResult: %s, TXID: %s", receiptResult, txId)
+			} else {
+				log.Printf("[TRON-SCAN] 合约执行成功. 消耗能量: %d, 消耗带宽: %d",
+					detail["energy_usage"], detail["net_usage"])
+			}
+		}
+	} else {
+		// 如果能查到 tx 但查不到 info，说明交易还在 Pending 中（未打包）
+		detail["status"] = "PENDING"
+		log.Printf("[TRON-SCAN] 交易状态：PENDING (已广播但尚未生成回执), TXID: %s", txId)
+	}
+	return detail, nil
 }

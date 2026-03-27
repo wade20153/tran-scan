@@ -33,9 +33,9 @@ func RegisterRoutes(mux *http.ServeMux) {
 	// -----------------------------
 	// 链操作 / 交易
 	// -----------------------------
-	mux.HandleFunc("/chain/transfer/trx", handler.TransferTRX)     // 转账 TRX
-	mux.HandleFunc("/chain/transfer/trc20", handler.TransferTRC20) // 转账 TRC20 Token
-	//mux.HandleFunc("/chain/transaction/status", handler.GetTransactionStatus)// 查询交易状态
+	mux.HandleFunc("/chain/transfer/trx", handler.TransferTRX)                // 转账 TRX
+	mux.HandleFunc("/chain/transfer/trc20", handler.TransferTRC20)            // 转账 TRC20 Token
+	mux.HandleFunc("/chain/transaction/status", handler.GetTransactionDetail) // 查询交易状态
 	//mux.HandleFunc("/chain/contract/call", handler.CallContract)     // 调用智能合约
 	//mux.HandleFunc("/chain/contract/deploy", handler.DeployContract) // 部署智能合约
 	//mux.HandleFunc("/wallet/estimateFee", handler.EstimateFee)       // 估算交易手续费

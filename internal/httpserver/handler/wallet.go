@@ -243,3 +243,35 @@ func TransferTRC20(w http.ResponseWriter, r *http.Request) {
 		log.Printf("trc20转账转账失败: %v", err)
 	}
 }
+
+// GetTransactionDetail trc20转账
+func GetTransactionDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	// 调用创建波场链的地址
+	var req request.TransferQueryById
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "查询trc20转账入参错误", http.StatusBadRequest)
+		return
+	}
+	walletService := service.WalletService{}
+	result, err := walletService.GetTransactionDetail(req.TxId)
+	if err != nil {
+		log.Printf("查询转账trc20转账失败: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+	// 设置返回头为 JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// 写入 JSON
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("trc20转账转账失败: %v", err)
+	}
+}
